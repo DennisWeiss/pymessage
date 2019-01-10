@@ -47,7 +47,9 @@ def login():
     if hashlib.sha512((request.json['password'] + user['salt']).encode('utf-8')).digest() == user['password']:
         return json.dumps({
             'user_id': request.json['user_id'],
-            'auth_token': jwt.encode({'user_id': request.json['user_id']}, conf['JWT_SECRET'], algorithm='HS256').decode('utf-8')
+            'auth_token': jwt.encode(
+                {'user_id': request.json['user_id']}, conf['JWT_SECRET'], algorithm='HS256'
+            ).decode('utf-8')
         }), 200
 
 
@@ -77,7 +79,9 @@ def on_leave(json_data):
 @socketio.on('message')
 def on_message(json_data):
     data = json.loads(json_data)
-    if data['user_id'] in user_id_to_sid:
+    user_id = data['user_id']
+    if jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256']) == user_id \
+            and data['user_id'] in user_id_to_sid:
         emit('receive_message', json.dumps({
             'user_id': sid_to_user_id[request.sid],
             'msg': data['msg']
