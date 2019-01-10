@@ -4,6 +4,9 @@ from pymongo import MongoClient
 import json
 import hashlib
 import uuid
+import jwt
+from apimessage import ApiMessage
+
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -20,9 +23,7 @@ def register_user():
     if not request.json:
         abort(400)
     if user_col.find_one({'user_id': request.json['user_id']}):
-        return json.dumps({
-            'msg': 'User already exists.'
-        }), 409
+        return json.dumps(ApiMessage('User already exists.').dict()), 409
     salt = uuid.uuid4().hex
     user = {
         'user_id': request.json['user_id'],
@@ -30,9 +31,21 @@ def register_user():
         'password': hashlib.sha512((request.json['password'] + salt).encode('utf-8')).digest()
     }
     user_col.insert_one(user)
-    return json.dumps({
-            'msg': 'User created successfully.'
-        }), 200
+    return json.dumps(ApiMessage('User created successfully.').dict()), 200
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    if not request.json:
+        abort(400)
+    user = user_col.find_one({'user_id': request.json['user_id']})
+    if not user:
+        return json.dumps(ApiMessage('User does not exist.').dict()), 404
+    if hashlib.sha512((request.json['password'] + user['salt']).encode('utf-8')).digest() == request.json['password']:
+        return json.dumps({
+            'user_id': request.json['user_id'],
+            'auth_token': jwt.encode({'user_id': request.json['user_id']}, '')
+        })
 
 
 @socketio.on('send_username')
