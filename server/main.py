@@ -14,6 +14,9 @@ mongoClient = MongoClient('mongodb://localhost:27017/')
 db = mongoClient['pymessage']
 user_col = db['user']
 
+with open('conf.json', encoding='utf-8') as f:
+    conf = json.loads(f.read())
+
 user_id_to_sid = {}
 sid_to_user_id = {}
 
@@ -41,11 +44,13 @@ def login():
     user = user_col.find_one({'user_id': request.json['user_id']})
     if not user:
         return json.dumps(ApiMessage('User does not exist.').dict()), 404
-    if hashlib.sha512((request.json['password'] + user['salt']).encode('utf-8')).digest() == request.json['password']:
+    print(hashlib.sha512((request.json['password'] + user['salt']).encode('utf-8')).digest())
+    print(user['password'])
+    if hashlib.sha512((request.json['password'] + user['salt']).encode('utf-8')).digest() == user['password']:
         return json.dumps({
             'user_id': request.json['user_id'],
-            'auth_token': jwt.encode({'user_id': request.json['user_id']}, '')
-        })
+            'auth_token': jwt.encode({'user_id': request.json['user_id']}, conf['JWT_SECRET'], algorithm='HS256').decode('utf-8')
+        }), 200
 
 
 @socketio.on('send_username')
