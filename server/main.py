@@ -51,13 +51,16 @@ def login():
         }), 200
 
 
-@socketio.on('send_username')
-def on_connect(user_id):
-    for user, sid in user_id_to_sid.items():
-        emit('new_user', user_id, room=sid)
-        emit('new_user', user, room=request.sid)
-    user_id_to_sid[user_id] = request.sid
-    sid_to_user_id[request.sid] = user_id
+@socketio.on('joining')
+def on_join(json_data):
+    data = json.loads(json_data)
+    user_id = data['user_id']
+    if jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256']) == user_id:
+        for user, sid in user_id_to_sid.items():
+            emit('new_user', user_id, room=sid)
+            emit('new_user', user, room=request.sid)
+        user_id_to_sid[user_id] = request.sid
+        sid_to_user_id[request.sid] = user_id
 
 
 @socketio.on('leaving')
