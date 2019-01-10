@@ -30,6 +30,7 @@ def setup_login_window(window):
 
     password_login_field = QLineEdit()
     password_login_field.setPlaceholderText('Password')
+    password_login_field.setEchoMode(QLineEdit.Password)
 
     layout.addWidget(username_login_field)
     layout.addWidget(password_login_field)

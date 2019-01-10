@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLineEdit, QVBoxLayout
+from PyQt5.QtWidgets import QLineEdit, QVBoxLayout, QPushButton
 
 
 def setup_register_window(window):
@@ -15,8 +15,11 @@ def setup_register_window(window):
     register_password_repeat_field.setPlaceholderText('Repeat Password')
     register_password_repeat_field.setEchoMode(QLineEdit.Password)
 
+    register_btn = QPushButton('Register')
+
     layout.addWidget(register_username_field)
     layout.addWidget(register_password_field)
     layout.addWidget(register_password_repeat_field)
+    layout.addWidget(register_btn)
 
     window.setLayout(layout)
