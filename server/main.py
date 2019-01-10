@@ -44,8 +44,6 @@ def login():
     user = user_col.find_one({'user_id': request.json['user_id']})
     if not user:
         return json.dumps(ApiMessage('User does not exist.').dict()), 404
-    print(hashlib.sha512((request.json['password'] + user['salt']).encode('utf-8')).digest())
-    print(user['password'])
     if hashlib.sha512((request.json['password'] + user['salt']).encode('utf-8')).digest() == user['password']:
         return json.dumps({
             'user_id': request.json['user_id'],
