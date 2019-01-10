@@ -23,6 +23,7 @@ sid_to_user_id = {}
 
 @app.route('/register', methods=['POST'])
 def register_user():
+    print(request)
     if not request.json:
         abort(400)
     if user_col.find_one({'user_id': request.json['user_id']}):
