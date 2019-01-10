@@ -1,5 +1,15 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QLineEdit, QWidget, QVBoxLayout, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QPushButton, QHBoxLayout
+import register
+
+
+register_window = None
+
+
+def register_btn_click():
+    global register_window
+    register_window = QWidget()
+    register.setup_register_window(register_window)
+    register_window.show()
 
 
 def setup_login_window(window):
@@ -8,6 +18,8 @@ def setup_login_window(window):
     login_register_btns = QHBoxLayout()
 
     register_btn = QPushButton('Register')
+    register_btn.clicked.connect(register_btn_click)
+
     login_btn = QPushButton('Login')
 
     login_register_btns.addWidget(register_btn)
