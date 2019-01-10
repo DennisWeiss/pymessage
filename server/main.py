@@ -1,13 +1,38 @@
-from flask import Flask, request
+from flask import Flask, request, abort
 from flask_socketio import SocketIO, emit
+from pymongo import MongoClient
 import json
-
+import hashlib
+import uuid
 
 app = Flask(__name__)
 socketio = SocketIO(app)
+mongoClient = MongoClient('mongodb://localhost:27017/')
+db = mongoClient['pymessage']
+user_col = db['user']
 
 user_id_to_sid = {}
 sid_to_user_id = {}
+
+
+@app.route('/register', methods=['POST'])
+def register_user():
+    if not request.json:
+        abort(400)
+    if user_col.find_one({'user_id': request.json['user_id']}):
+        return json.dumps({
+            'msg': 'User already exists.'
+        }), 409
+    salt = uuid.uuid4().hex
+    user = {
+        'user_id': request.json['user_id'],
+        'salt': salt,
+        'password': hashlib.sha512((request.json['password'] + salt).encode('utf-8')).digest()
+    }
+    user_col.insert_one(user)
+    return json.dumps({
+            'msg': 'User created successfully.'
+        }), 200
 
 
 @socketio.on('send_username')
