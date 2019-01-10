@@ -1,8 +1,49 @@
-from PyQt5.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 import register
+import session
+import json
 
+
+_auth_token = None
+_username = ''
+
+
+def get_username():
+    return _username
+
+
+def get_auth_token():
+    return _auth_token
+
+
+with open('conf.json', encoding='utf-8') as f:
+    conf = json.loads(f.read())
 
 register_window = None
+
+session_obj = session.get_session()
+
+
+def login(username, password, login_info_lbl):
+    response = session_obj.post(
+        url=conf['SERVER_ADDRESS'] + '/login',
+        json={
+            'user_id': username,
+            'password': password
+        }
+    )
+    if response.status_code == 401:
+        login_info_lbl.setText('Wrong password!')
+    elif response.status_code == 200:
+        data = json.loads(response.text)
+        if 'msg' in data:
+            login_info_lbl.setText(data['msg'])
+        else:
+            global _username
+            global _auth_token
+            _username = data['user_id']
+            _auth_token = data['auth_token']
+            login_info_lbl.setText('You are now logged in.')
 
 
 def register_btn_click():
@@ -20,11 +61,6 @@ def setup_login_window(window):
     register_btn = QPushButton('Register')
     register_btn.clicked.connect(register_btn_click)
 
-    login_btn = QPushButton('Login')
-
-    login_register_btns.addWidget(register_btn)
-    login_register_btns.addWidget(login_btn)
-
     username_login_field = QLineEdit()
     username_login_field.setPlaceholderText('Username')
 
@@ -32,8 +68,17 @@ def setup_login_window(window):
     password_login_field.setPlaceholderText('Password')
     password_login_field.setEchoMode(QLineEdit.Password)
 
+    login_info = QLabel()
+
+    login_btn = QPushButton('Login')
+    login_btn.clicked.connect(lambda: login(username_login_field.text(), password_login_field.text(), login_info))
+
+    login_register_btns.addWidget(register_btn)
+    login_register_btns.addWidget(login_btn)
+
     layout.addWidget(username_login_field)
     layout.addWidget(password_login_field)
     layout.addLayout(login_register_btns)
+    layout.addWidget(login_info)
 
     window.setLayout(layout)

@@ -52,6 +52,9 @@ def login():
                 {'user_id': request.json['user_id']}, conf['JWT_SECRET'], algorithm='HS256'
             ).decode('utf-8')
         }), 200
+    return json.dumps({
+        'msg': 'Wrong password'
+    }), 401
 
 
 @socketio.on('joining')
