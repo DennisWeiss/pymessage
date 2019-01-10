@@ -64,11 +64,14 @@ def on_join(json_data):
 
 
 @socketio.on('leaving')
-def on_leave(user_id):
-    del sid_to_user_id[user_id_to_sid[user_id]]
-    del user_id_to_sid[user_id]
-    for user_id, sid in user_id_to_sid.items():
-        emit('user_disconnected', user_id, room=sid)
+def on_leave(json_data):
+    data = json.loads(json_data)
+    user_id = data['user_id']
+    if jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256']) == user_id:
+        del sid_to_user_id[user_id_to_sid[user_id]]
+        del user_id_to_sid[user_id]
+        for user_id, sid in user_id_to_sid.items():
+            emit('user_disconnected', user_id, room=sid)
 
 
 @socketio.on('message')
