@@ -2,18 +2,7 @@ from PyQt5.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QPushButton, QHBoxL
 import register
 import session
 import json
-
-
-_auth_token = None
-_username = ''
-
-
-def get_username():
-    return _username
-
-
-def get_auth_token():
-    return _auth_token
+import chat
 
 
 with open('conf.json', encoding='utf-8') as f:
@@ -24,7 +13,7 @@ register_window = None
 session_obj = session.get_session()
 
 
-def login(username, password, login_info_lbl):
+def login(username, password, login_info_lbl, login_window):
     response = session_obj.post(
         url=conf['SERVER_ADDRESS'] + '/login',
         json={
@@ -39,11 +28,10 @@ def login(username, password, login_info_lbl):
         if 'msg' in data:
             login_info_lbl.setText(data['msg'])
         else:
-            global _username
-            global _auth_token
-            _username = data['user_id']
-            _auth_token = data['auth_token']
-            login_info_lbl.setText('You are now logged in.')
+            login_window.close()
+            chat_window = QWidget()
+            chat.setup_chat_window(chat_window, data['user_id'], data['auth_token'])
+            chat_window.show()
 
 
 def register_btn_click():
@@ -71,7 +59,7 @@ def setup_login_window(window):
     login_info = QLabel()
 
     login_btn = QPushButton('Login')
-    login_btn.clicked.connect(lambda: login(username_login_field.text(), password_login_field.text(), login_info))
+    login_btn.clicked.connect(lambda: login(username_login_field.text(), password_login_field.text(), login_info, window))
 
     login_register_btns.addWidget(register_btn)
     login_register_btns.addWidget(login_btn)
