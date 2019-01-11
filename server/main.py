@@ -58,6 +58,16 @@ def login():
     }), 401
 
 
+@app.route('/user', methods=['GET'])
+def get_user():
+    user = user_col.find_one({'user_id': request.args.get('id')})
+    if not user:
+        abort(404)
+    return json.dumps({
+        'user_id': user['user_id']
+    }), 200
+
+
 @app.route('/search-user', methods=['GET'])
 def search_user():
     search_string = request.args.get('searchstring')
