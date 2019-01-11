@@ -77,6 +77,8 @@ def search_user():
 
 @socketio.on('joining')
 def on_join(json_data):
+    print('joining')
+    print(json_data)
     data = json.loads(json_data)
     user_id = data['user_id']
     if jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256']) == user_id:

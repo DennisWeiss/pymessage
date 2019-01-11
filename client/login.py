@@ -9,6 +9,7 @@ with open('conf.json', encoding='utf-8') as f:
     conf = json.loads(f.read())
 
 register_window = None
+chat_window = None
 
 session_obj = session.get_session()
 
@@ -28,10 +29,11 @@ def login(username, password, login_info_lbl, login_window):
         if 'msg' in data:
             login_info_lbl.setText(data['msg'])
         else:
-            login_window.close()
+            global chat_window
             chat_window = QWidget()
             chat.setup_chat_window(chat_window, data['user_id'], data['auth_token'])
             chat_window.show()
+            login_window.close()
 
 
 def register_btn_click():
