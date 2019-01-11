@@ -6,6 +6,7 @@ import hashlib
 import uuid
 import jwt
 from apimessage import ApiMessage
+import re
 
 
 app = Flask(__name__)
@@ -55,6 +56,13 @@ def login():
     return json.dumps({
         'msg': 'Wrong password'
     }), 401
+
+
+@app.route('/search-user', methods=['GET'])
+def search_user():
+    search_string = request.args.get('searchstring')
+    users = list(user_col.find({'user_id': re.compile(search_string)}))
+    return json.dumps(list(map(lambda user: user['user_id'], users))), 200
 
 
 @socketio.on('joining')
