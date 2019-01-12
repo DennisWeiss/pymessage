@@ -162,7 +162,7 @@ def on_new_user_online(user):
 def one_receive_message(json_data):
     data = json.loads(json_data)
     if data['user_id'] in friends:
-        friends[data['user_id']].add_message(Message(json_data['user_id'], _user_id, data['msg']))
+        friends[data['user_id']].add_message(Message(data['user_id'], _user_id, data['msg']))
         print(list(map(lambda message: message.content, friends[data['user_id']].messages)))
 
 
