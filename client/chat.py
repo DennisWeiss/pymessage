@@ -34,6 +34,7 @@ def add_friend(friend):
 def add_friend_to_overview(friend, overview):
     friend_widget = QLabel()
     friend_widget.setText(friend)
+    friend_widget.setStyleSheet('color: gray')
     overview.addWidget(friend_widget)
     friends_ui.append(friend_widget)
 
@@ -76,7 +77,7 @@ def setup_chat_window(window, user_id, auth_token):
 
     friends_overview = QVBoxLayout()
 
-    for friend in friends:
+    for friend, online in friends.items():
         if friend != user_id:
             add_friend_to_overview(friend, friends_overview)
 
@@ -98,12 +99,19 @@ def read_friends_from_file(file_name):
     file = open(file_name, 'r')
     friends = list(map(lambda string: string.rstrip(), file.readlines()))
     file.close()
-    return friends
+    friends_online = {}
+    for friend in friends:
+        friends_online[friend] = False
+    return friends_online
 
 
 @socket_io.on('new_user')
 def on_new_user_online(user):
-    print(user + ' has come online')
+    if user in friends:
+        friends[user] = True
+        for friend_widget in friends_ui:
+            if friend_widget.text() == user:
+                friend_widget.setStyleSheet('color: black')
 
 
 session_obj = session.get_session()
