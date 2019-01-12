@@ -14,8 +14,30 @@ session_obj = session.get_session()
 
 friends = []
 
+_user_id = None
+_auth_token = None
+
+warning_dialog = None
+
+
+def set_up_warning_dialog(window, message):
+    layout = QVBoxLayout()
+
+    message_lbl = QLabel(message)
+    ok_btn = QPushButton('OK')
+    ok_btn.clicked.connect(window.close)
+
+    layout.addWidget(message_lbl)
+    layout.addWidget(ok_btn)
+
+    window.setLayout(layout)
+
 
 def add_user(username, friends_overview):
+    if username == _user_id:
+        warning_dialog_window = QWidget()
+        set_up_warning_dialog(warning_dialog_window, 'You can\'t add yourself as friend.')
+        warning_dialog_window.show()
     response = session_obj.get(
         url=conf['SERVER_ADDRESS'] + '/user',
         params={
@@ -27,9 +49,18 @@ def add_user(username, friends_overview):
         friend.setText(username)
         friends_overview.addWidget(friend)
         friends.append(friend)
+    elif response.status_code == 404:
+        warning_dialog_window = QWidget()
+        set_up_warning_dialog(warning_dialog_window, 'User ' + username + ' not found')
+        warning_dialog_window.show()
 
 
 def setup_chat_window(window, user_id, auth_token):
+    global _user_id
+    global _auth_token
+    _user_id = user_id
+    _auth_token = auth_token
+
     socket_io.emit('joining', json.dumps({
         'user_id': user_id,
         'auth_token': auth_token
