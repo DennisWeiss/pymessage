@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QPushButton, QLabel
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QPushButton, QLabel, QPlainTextEdit
 from socketIO_client import SocketIO, LoggingNamespace
 import json
 import web_sockets
@@ -25,16 +25,35 @@ def set_up_warning_dialog(window, message):
 
 
 def add_friend(friend):
-    friends.append(friend)
+    # TODO: check whether friend is online
+    friends[friend] = False
     file = open(conf['FRIENDS_FILE_NAME'], 'a')
     file.write(friend + '\n')
     file.close()
+
+
+def select_friend(username):
+    global friend_selected
+    friend_selected = username
+    for friend_widget in friends_ui:
+        if friend_widget.text() == username:
+            if friends[friend_widget.text()]:
+                friend_widget.setStyleSheet("QLabel {background-color: rgba(0, 255, 0, 0.2); color: black;}")
+            else:
+                friend_widget.setStyleSheet("QLabel {background-color: rgba(0, 255, 0, 0.2); color: gray}")
+        else:
+            if friends[friend_widget.text()]:
+                friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: black;}")
+            else:
+                friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: gray;}")
+    print(friend_selected)
 
 
 def add_friend_to_overview(friend, overview):
     friend_widget = QLabel()
     friend_widget.setText(friend)
     friend_widget.setStyleSheet('color: gray')
+    friend_widget.mousePressEvent = lambda e: select_friend(friend)
     overview.addWidget(friend_widget)
     friends_ui.append(friend_widget)
 
@@ -85,9 +104,20 @@ def setup_chat_window(window, user_id, auth_token):
     add_user_btn = QPushButton('Add User')
     add_user_btn.clicked.connect(lambda: add_user(add_user_field.text(), friends_overview))
 
+    message_box_layout = QHBoxLayout()
+
+    message_text_field = QPlainTextEdit()
+    message_text_field.setFixedHeight(40)
+    send_btn = QPushButton('Send')
+
+    message_box_layout.addWidget(message_text_field)
+    message_box_layout.addWidget(send_btn)
+
     user_overview.addWidget(add_user_field)
     user_overview.addWidget(add_user_btn)
     user_overview.addLayout(friends_overview)
+
+    messaging_view.addLayout(message_box_layout)
 
     layout.addLayout(user_overview)
     layout.addLayout(messaging_view)
@@ -120,6 +150,8 @@ friends_file_name = conf['FRIENDS_FILE_NAME']
 
 friends = read_friends_from_file(friends_file_name)
 friends_ui = []
+
+friend_selected = None
 
 _user_id = None
 _auth_token = None
