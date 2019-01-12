@@ -3,6 +3,8 @@ from socketIO_client import SocketIO, LoggingNamespace
 import json
 import web_sockets
 import session
+from user import User
+from message import Message
 
 
 socket_io = web_sockets.socket_io()
@@ -37,12 +39,12 @@ def select_friend(username):
     friend_selected = username
     for friend_widget in friends_ui:
         if friend_widget.text() == username:
-            if friends[friend_widget.text()]:
+            if friend_widget.text() in friends and friends[friend_widget.text()].online:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0, 255, 0, 0.2); color: black;}")
             else:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0, 255, 0, 0.2); color: gray}")
         else:
-            if friends[friend_widget.text()]:
+            if friend_widget.text() in friends and friends[friend_widget.text()].online:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: black;}")
             else:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: gray;}")
@@ -78,6 +80,15 @@ def add_user(username, friends_overview):
         warning_dialog_window.show()
 
 
+def send_message(user, message):
+    print(user)
+    socket_io.emit('message', json.dumps({
+        'user_id': user,
+        'msg': message,
+        'auth_token': _auth_token
+    }))
+
+
 def setup_chat_window(window, user_id, auth_token):
     global _user_id
     global _auth_token
@@ -96,7 +107,7 @@ def setup_chat_window(window, user_id, auth_token):
 
     friends_overview = QVBoxLayout()
 
-    for friend, online in friends.items():
+    for friend, user in friends.items():
         if friend != user_id:
             add_friend_to_overview(friend, friends_overview)
 
@@ -109,6 +120,7 @@ def setup_chat_window(window, user_id, auth_token):
     message_text_field = QPlainTextEdit()
     message_text_field.setFixedHeight(40)
     send_btn = QPushButton('Send')
+    send_btn.clicked.connect(lambda: send_message(friend_selected, message_text_field.toPlainText()))
 
     message_box_layout.addWidget(message_text_field)
     message_box_layout.addWidget(send_btn)
@@ -129,19 +141,29 @@ def read_friends_from_file(file_name):
     file = open(file_name, 'r')
     friends = list(map(lambda string: string.rstrip(), file.readlines()))
     file.close()
-    friends_online = {}
-    for friend in friends:
-        friends_online[friend] = False
-    return friends_online
+    friends_dict = {}
+    for user_name in friends:
+        friend = User(user_name)
+        friend.online = False
+        friends_dict[user_name] = friend
+    return friends_dict
 
 
 @socket_io.on('new_user')
 def on_new_user_online(user):
     if user in friends:
-        friends[user] = True
+        friends[user].online = True
         for friend_widget in friends_ui:
             if friend_widget.text() == user:
                 friend_widget.setStyleSheet('color: black')
+
+
+@socket_io.on('receive_message')
+def one_receive_message(json_data):
+    data = json.loads(json_data)
+    if data['user_id'] in friends:
+        friends[data['user_id']].add_message(Message(json_data['user_id'], _user_id, data['msg']))
+        print(list(map(lambda message: message.content, friends[data['user_id']].messages)))
 
 
 session_obj = session.get_session()

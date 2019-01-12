@@ -101,14 +101,16 @@ def on_leave(json_data):
 
 @socketio.on('message')
 def on_message(json_data):
+    print(json_data)
     data = json.loads(json_data)
     user_id = data['user_id']
     decoded_token = jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256'])
-    if decoded_token is not None and decoded_token == user_id and data['user_id'] in user_id_to_sid:
+    if decoded_token is not None and decoded_token['user_id'] == sid_to_user_id[request.sid]\
+            and data['user_id'] in user_id_to_sid:
         emit('receive_message', json.dumps({
             'user_id': sid_to_user_id[request.sid],
             'msg': data['msg']
-        }), room=user_id_to_sid[data['user_id']])
+        }), room=user_id_to_sid[user_id])
 
 
 if __name__ == '__main__':
