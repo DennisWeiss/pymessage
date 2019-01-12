@@ -24,7 +24,6 @@ sid_to_user_id = {}
 
 @app.route('/register', methods=['POST'])
 def register_user():
-    print(request)
     if not request.json:
         abort(400)
     if user_col.find_one({'user_id': request.json['user_id']}):
@@ -77,11 +76,10 @@ def search_user():
 
 @socketio.on('joining')
 def on_join(json_data):
-    print('joining')
-    print(json_data)
     data = json.loads(json_data)
     user_id = data['user_id']
-    if jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256']) == user_id:
+    decoded_token = jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256'])
+    if decoded_token is not None and decoded_token['user_id'] == user_id:
         for user, sid in user_id_to_sid.items():
             emit('new_user', user_id, room=sid)
             emit('new_user', user, room=request.sid)
@@ -93,7 +91,8 @@ def on_join(json_data):
 def on_leave(json_data):
     data = json.loads(json_data)
     user_id = data['user_id']
-    if jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256']) == user_id:
+    decoded_token = jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256'])
+    if decoded_token is not None and decoded_token['user_id'] == user_id:
         del sid_to_user_id[user_id_to_sid[user_id]]
         del user_id_to_sid[user_id]
         for user_id, sid in user_id_to_sid.items():
@@ -104,8 +103,8 @@ def on_leave(json_data):
 def on_message(json_data):
     data = json.loads(json_data)
     user_id = data['user_id']
-    if jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256']) == user_id \
-            and data['user_id'] in user_id_to_sid:
+    decoded_token = jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256'])
+    if decoded_token is not None and decoded_token == user_id and data['user_id'] in user_id_to_sid:
         emit('receive_message', json.dumps({
             'user_id': sid_to_user_id[request.sid],
             'msg': data['msg']

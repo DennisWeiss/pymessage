@@ -77,7 +77,8 @@ def setup_chat_window(window, user_id, auth_token):
     friends_overview = QVBoxLayout()
 
     for friend in friends:
-        add_friend_to_overview(friend, friends_overview)
+        if friend != user_id:
+            add_friend_to_overview(friend, friends_overview)
 
     add_user_field = QLineEdit()
     add_user_btn = QPushButton('Add User')
@@ -98,6 +99,11 @@ def read_friends_from_file(file_name):
     friends = list(map(lambda string: string.rstrip(), file.readlines()))
     file.close()
     return friends
+
+
+@socket_io.on('new_user')
+def on_new_user_online(user):
+    print(user + ' has come online')
 
 
 session_obj = session.get_session()
