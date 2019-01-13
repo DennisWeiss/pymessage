@@ -48,6 +48,7 @@ def select_friend(username):
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: black;}")
             else:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: gray;}")
+    update_messages_box()
     print(friend_selected)
 
 
@@ -87,11 +88,22 @@ def send_message(user, message):
         'msg': message,
         'auth_token': _auth_token
     }))
+    friends[user].messages.append(Message(_user_id, user, message))
+    update_messages_box()
+
+
+def update_messages_box():
+    if friend_selected:
+        for i in reversed(range(messages_box.count())):
+            messages_box.itemAt(i).widget().setParent(None)
+        for message in friends[friend_selected].messages:
+            messages_box.addWidget(QLabel('{}: {}'.format(message.sender, message.content)))
 
 
 def setup_chat_window(window, user_id, auth_token):
     global _user_id
     global _auth_token
+    global messages_box
     _user_id = user_id
     _auth_token = auth_token
 
@@ -115,6 +127,9 @@ def setup_chat_window(window, user_id, auth_token):
     add_user_btn = QPushButton('Add User')
     add_user_btn.clicked.connect(lambda: add_user(add_user_field.text(), friends_overview))
 
+    messages_box = QVBoxLayout()
+    update_messages_box()
+
     message_box_layout = QHBoxLayout()
 
     message_text_field = QPlainTextEdit()
@@ -129,6 +144,7 @@ def setup_chat_window(window, user_id, auth_token):
     user_overview.addWidget(add_user_btn)
     user_overview.addLayout(friends_overview)
 
+    messaging_view.addLayout(messages_box)
     messaging_view.addLayout(message_box_layout)
 
     layout.addLayout(user_overview)
@@ -164,6 +180,7 @@ def one_receive_message(json_data):
     if data['user_id'] in friends:
         friends[data['user_id']].add_message(Message(data['user_id'], _user_id, data['msg']))
         print(list(map(lambda message: message.content, friends[data['user_id']].messages)))
+    update_messages_box()
 
 
 session_obj = session.get_session()
@@ -179,4 +196,6 @@ _user_id = None
 _auth_token = None
 
 warning_dialog = None
+
+messages_box = None
 
