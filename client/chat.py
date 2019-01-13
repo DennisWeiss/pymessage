@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QPushButton, QLabel, QPlainTextEdit
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QPushButton, QLabel, QPlainTextEdit, QScrollArea
 from socketIO_client import SocketIO, LoggingNamespace
 import json
 import web_sockets
@@ -127,15 +127,21 @@ def setup_chat_window(window, user_id, auth_token):
     add_user_btn = QPushButton('Add User')
     add_user_btn.clicked.connect(lambda: add_user(add_user_field.text(), friends_overview))
 
-    messages_box = QVBoxLayout()
-    update_messages_box()
-
-    message_box_layout = QHBoxLayout()
-
     message_text_field = QPlainTextEdit()
     message_text_field.setFixedHeight(40)
     send_btn = QPushButton('Send')
     send_btn.clicked.connect(lambda: send_message(friend_selected, message_text_field.toPlainText()))
+
+    messages_box_scroll_area = QScrollArea()
+    messages_box_scroll_area.setWidgetResizable(True)
+    messages_box_content = QWidget(messages_box_scroll_area)
+
+    messages_box = QVBoxLayout(messages_box_content)
+    update_messages_box()
+
+    messages_box_scroll_area.setWidget(messages_box_content)
+
+    message_box_layout = QHBoxLayout()
 
     message_box_layout.addWidget(message_text_field)
     message_box_layout.addWidget(send_btn)
@@ -144,7 +150,7 @@ def setup_chat_window(window, user_id, auth_token):
     user_overview.addWidget(add_user_btn)
     user_overview.addLayout(friends_overview)
 
-    messaging_view.addLayout(messages_box)
+    messaging_view.addWidget(messages_box_scroll_area)
     messaging_view.addLayout(message_box_layout)
 
     layout.addLayout(user_overview)
