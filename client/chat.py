@@ -1,5 +1,5 @@
 from PyQt5 import QtCore
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QPushButton, QLabel, QPlainTextEdit, QScrollArea
 import json
 import web_sockets
@@ -14,8 +14,14 @@ with open('conf.json', encoding='utf-8') as f:
     conf = json.loads(f.read())
 
 
-class PyQtThread(QThread):
-    signal = QtCore.pyqtSignal()
+class WorkerThread(QThread):
+    append_message = pyqtSignal(str, str)
+
+    def __init__(self):
+        QThread.__init__(self)
+
+    def append_message_to_message_box(self, username, message):
+        self.append_message.emit(username, message)
 
 
 def set_up_warning_dialog(window, message):
@@ -151,6 +157,9 @@ def setup_chat_window(window, user_id, auth_token):
     messages_box_content = QWidget(messages_box_scroll_area)
 
     messages_box = QVBoxLayout(messages_box_content)
+    global worker
+    worker = WorkerThread()
+    worker.append_message.connect(lambda username, message: add_message_to_messages_box(username, message, messages_box))
     update_messages_box()
 
     messages_box_scroll_area.setWidget(messages_box_content)
@@ -205,9 +214,7 @@ def one_receive_message(json_data):
         friends[data['user_id']].add_message(Message(data['user_id'], _user_id, data['msg']))
         print(list(map(lambda message: message.content, friends[data['user_id']].messages)))
     if data['user_id'] == friend_selected:
-        global messages_box
-        thread = PyQtThread()
-        thread.signal.connect(lambda: add_message_to_messages_box(data['user_id'], data['msg'], messages_box))
+        worker.append_message_to_message_box(data['user_id'], data['msg'])
 
 
 session_obj = session.get_session()
@@ -218,6 +225,8 @@ friends = read_friends_from_file(friends_file_name)
 friends_ui = []
 
 friend_selected = None
+
+worker = None
 
 _user_id = None
 _auth_token = None
