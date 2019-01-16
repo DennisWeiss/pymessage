@@ -41,6 +41,7 @@ def register_btn_click():
     register_window = QWidget()
     register.setup_register_window(register_window)
     register_window.show()
+    
 
 
 def setup_login_window(window):
