@@ -74,6 +74,18 @@ def search_user():
     return json.dumps(list(map(lambda user: user['user_id'], users))), 200
 
 
+@app.route('/online', methods=['GET'])
+def is_online():
+    user_id = request.args.get('user')
+    user = user_col.find({'user_id': user_id})
+    if not user:
+        abort(404)
+    return json.dumps({
+        'user_id': user_id,
+        'online': user_id in user_id_to_sid
+    })
+
+
 @socketio.on('joining')
 def on_join(json_data):
     data = json.loads(json_data)

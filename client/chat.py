@@ -1,5 +1,6 @@
+from PyQt5 import QtCore
+from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QPushButton, QLabel, QPlainTextEdit, QScrollArea
-from socketIO_client import SocketIO, LoggingNamespace
 import json
 import web_sockets
 import session
@@ -11,6 +12,10 @@ socket_io = web_sockets.socket_io()
 
 with open('conf.json', encoding='utf-8') as f:
     conf = json.loads(f.read())
+
+
+class PyQtThread(QThread):
+    signal = QtCore.pyqtSignal()
 
 
 def set_up_warning_dialog(window, message):
@@ -27,8 +32,16 @@ def set_up_warning_dialog(window, message):
 
 
 def add_friend(friend):
-    # TODO: check whether friend is online
-    friends[friend] = False
+    response = session_obj.get(
+        url=conf['SERVER_ADDRESS'] + '/online',
+        params={
+            'user': friend
+        }
+    )
+    data = json.loads(response.text)
+    friend_user = User(friend)
+    friend_user.online = data and data['online']
+    friends[friend] = friend_user
     file = open(conf['FRIENDS_FILE_NAME'], 'a')
     file.write(friend + '\n')
     file.close()
@@ -66,19 +79,20 @@ def add_user(username, friends_overview):
         warning_dialog_window = QWidget()
         set_up_warning_dialog(warning_dialog_window, 'You can\'t add yourself as friend.')
         warning_dialog_window.show()
-    response = session_obj.get(
-        url=conf['SERVER_ADDRESS'] + '/user',
-        params={
-            'id': username
-        }
-    )
-    if response.status_code == 200:
-        add_friend(username)
-        add_friend_to_overview(username, friends_overview)
-    elif response.status_code == 404:
-        warning_dialog_window = QWidget()
-        set_up_warning_dialog(warning_dialog_window, 'User ' + username + ' not found')
-        warning_dialog_window.show()
+    else:
+        response = session_obj.get(
+            url=conf['SERVER_ADDRESS'] + '/user',
+            params={
+                'id': username
+            }
+        )
+        if response.status_code == 200:
+            add_friend(username)
+            add_friend_to_overview(username, friends_overview)
+        elif response.status_code == 404:
+            warning_dialog_window = QWidget()
+            set_up_warning_dialog(warning_dialog_window, 'User ' + username + ' not found')
+            warning_dialog_window.show()
 
 
 def send_message(user, message):
@@ -171,6 +185,10 @@ def read_friends_from_file(file_name):
     return friends_dict
 
 
+def add_message_to_messages_box(username, message, messages_box):
+    messages_box.addWidget(QLabel('{}: {}'.format(username, message)))
+
+
 @socket_io.on('new_user')
 def on_new_user_online(user):
     if user in friends:
@@ -186,7 +204,10 @@ def one_receive_message(json_data):
     if data['user_id'] in friends:
         friends[data['user_id']].add_message(Message(data['user_id'], _user_id, data['msg']))
         print(list(map(lambda message: message.content, friends[data['user_id']].messages)))
-    update_messages_box()
+    if data['user_id'] == friend_selected:
+        global messages_box
+        thread = PyQtThread()
+        thread.signal.connect(lambda: add_message_to_messages_box(data['user_id'], data['msg'], messages_box))
 
 
 session_obj = session.get_session()
