@@ -193,7 +193,7 @@ def setup_chat_window(window, user_id, auth_token):
 
 def read_friends_from_file(file_name):
     file = open(file_name, 'r')
-    friends = list(map(lambda string: string.rstrip(), file.readlines()))
+    friends = list(filter(lambda string: len(string) > 0, map(lambda string: string.strip(), file.readlines())))
     file.close()
     friends_dict = {}
     for user_name in friends:
