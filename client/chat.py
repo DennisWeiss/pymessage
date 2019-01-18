@@ -55,18 +55,23 @@ def add_friend(friend):
 
 def select_friend(username):
     global friend_selected
+    global message_text_field
+    global send_btn
     friend_selected = username
     for friend_widget in friends_ui:
+        is_online = friend_widget.text() in friends and friends[friend_widget.text()].online
         if friend_widget.text() == username:
-            if friend_widget.text() in friends and friends[friend_widget.text()].online:
+            if is_online:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0, 255, 0, 0.2); color: black;}")
             else:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0, 255, 0, 0.2); color: gray}")
         else:
-            if friend_widget.text() in friends and friends[friend_widget.text()].online:
+            if is_online:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: black;}")
             else:
                 friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: gray;}")
+    message_text_field.setEnabled(friends[friend_selected].online)
+    send_btn.setEnabled(friends[friend_selected].online)
     update_messages_box()
     print(friend_selected)
 
@@ -124,6 +129,8 @@ def setup_chat_window(window, user_id, auth_token):
     global _user_id
     global _auth_token
     global messages_box
+    global message_text_field
+    global send_btn
     _user_id = user_id
     _auth_token = auth_token
 
@@ -148,8 +155,10 @@ def setup_chat_window(window, user_id, auth_token):
     add_user_btn.clicked.connect(lambda: add_user(add_user_field.text(), friends_overview))
 
     message_text_field = QPlainTextEdit()
+    message_text_field.setEnabled(False)
     message_text_field.setFixedHeight(40)
     send_btn = QPushButton('Send')
+    send_btn.setEnabled(False)
     send_btn.clicked.connect(lambda: send_message(friend_selected, message_text_field.toPlainText()))
 
     messages_box_scroll_area = QScrollArea()
@@ -232,6 +241,8 @@ _user_id = None
 _auth_token = None
 
 warning_dialog = None
+message_text_field = None
+send_btn = None
 
 messages_box = None
 
