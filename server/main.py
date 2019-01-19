@@ -1,4 +1,5 @@
 from flask import Flask, request, abort
+
 from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 import json
@@ -7,7 +8,8 @@ import uuid
 import jwt
 from apimessage import ApiMessage
 import re
-
+import threading
+import time
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -15,11 +17,19 @@ mongoClient = MongoClient('mongodb://localhost:27017/')
 db = mongoClient['pymessage']
 user_col = db['user']
 
+online_check_interval = 10
+
 with open('conf.json', encoding='utf-8') as f:
     conf = json.loads(f.read())
 
 user_id_to_sid = {}
 sid_to_user_id = {}
+sid_to_last_online_msg = {}
+
+
+def disconnect_user(disconnected_user):
+    for user_id, sid in user_id_to_sid.items():
+        socketio.emit('user_disconnected', disconnected_user, room=sid)
 
 
 @app.route('/register', methods=['POST'])
@@ -97,6 +107,7 @@ def on_join(json_data):
             emit('new_user', user, room=request.sid)
         user_id_to_sid[user_id] = request.sid
         sid_to_user_id[request.sid] = user_id
+        sid_to_last_online_msg[request.sid] = time.time()
 
 
 @socketio.on('leaving')
@@ -105,15 +116,11 @@ def on_leave(json_data):
     user_id = data['user_id']
     decoded_token = jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256'])
     if decoded_token is not None and decoded_token['user_id'] == user_id:
-        del sid_to_user_id[user_id_to_sid[user_id]]
-        del user_id_to_sid[user_id]
-        for user_id, sid in user_id_to_sid.items():
-            emit('user_disconnected', user_id, room=sid)
+        disconnect_user(user_id)
 
 
 @socketio.on('message')
 def on_message(json_data):
-    print(json_data)
     data = json.loads(json_data)
     user_id = data['user_id']
     decoded_token = jwt.decode(data['auth_token'], conf['JWT_SECRET'], algorithms=['HS256'])
@@ -124,6 +131,32 @@ def on_message(json_data):
             'msg': data['msg']
         }), room=user_id_to_sid[user_id])
 
+
+@socketio.on('online')
+def on_online_msg(data):
+    print(sid_to_user_id[request.sid] + ' is online')
+    if request.sid in sid_to_last_online_msg:
+        sid_to_last_online_msg[request.sid] = time.time()
+
+
+def check_if_users_are_still_online():
+    threading.Timer(online_check_interval, check_if_users_are_still_online).start()
+    print(sid_to_last_online_msg)
+    users_to_remove = []
+    for sid, last_online_msg in sid_to_last_online_msg.items():
+        if time.time() - last_online_msg > 10:
+            print(sid_to_user_id[sid] + ' is no longer online')
+            disconnect_user(sid_to_user_id[sid])
+            del user_id_to_sid[sid_to_user_id[sid]]
+            del sid_to_user_id[sid]
+            users_to_remove.append(sid)
+        else:
+            print(sid_to_user_id[sid] + ' is still online')
+    for user_sid in users_to_remove:
+        del sid_to_last_online_msg[user_sid]
+
+
+check_if_users_are_still_online()
 
 if __name__ == '__main__':
     socketio.run(app, port=conf['PORT'])

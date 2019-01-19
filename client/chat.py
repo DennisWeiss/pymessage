@@ -2,11 +2,14 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLineEdit, QPushButton, QLabel, QPlainTextEdit, QScrollArea
 import json
+import threading
 import web_sockets
 import session
 from user import User
 from message import Message
 
+
+send_online_interval = 5
 
 socket_io = web_sockets.socket_io()
 
@@ -226,6 +229,28 @@ def one_receive_message(json_data):
         worker.append_message_to_message_box(data['user_id'], data['msg'])
 
 
+@socket_io.on('user_disconnected')
+def on_user_disconnected(username):
+    global friends_ui
+    global friends
+    print(username + ' disconnected')
+    if username in friends:
+        friends[username].online = False
+    for friend_widget in friends_ui:
+        print(friend_widget.text())
+        if friend_widget.text() == username:
+            if username == friend_selected:
+                friend_widget.setStyleSheet("QLabel {background-color: rgba(0, 255, 0, 0.2); color: gray;}")
+            else:
+                friend_widget.setStyleSheet("QLabel {background-color: rgba(0,0,0,0); color: gray;}")
+
+
+def send_online():
+    threading.Timer(send_online_interval, send_online).start()
+    print('online')
+    socket_io.emit('online', '')
+
+
 session_obj = session.get_session()
 
 friends_file_name = conf['FRIENDS_FILE_NAME']
@@ -245,4 +270,6 @@ message_text_field = None
 send_btn = None
 
 messages_box = None
+
+send_online()
 
