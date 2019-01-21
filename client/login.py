@@ -1,3 +1,4 @@
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QLineEdit, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 import register
 import session
@@ -46,7 +47,13 @@ def register_btn_click():
 def setup_login_window(window):
     layout = QVBoxLayout()
 
+
     login_register_btns = QHBoxLayout()
+
+    picture = QLabel()
+    pixmap = QPixmap('pymessage.png')
+    pixmap = pixmap.scaledToWidth(400)
+    picture.setPixmap(pixmap)
 
     register_btn = QPushButton('Register')
     register_btn.clicked.connect(register_btn_click)
@@ -66,9 +73,11 @@ def setup_login_window(window):
     login_register_btns.addWidget(register_btn)
     login_register_btns.addWidget(login_btn)
 
+    layout.addWidget(picture)
     layout.addWidget(username_login_field)
     layout.addWidget(password_login_field)
-    layout.addLayout(login_register_btns)
     layout.addWidget(login_info)
+    layout.addLayout(login_register_btns)
+
 
     window.setLayout(layout)
