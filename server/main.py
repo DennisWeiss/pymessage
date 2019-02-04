@@ -159,4 +159,4 @@ def check_if_users_are_still_online():
 check_if_users_are_still_online()
 
 if __name__ == '__main__':
-    socketio.run(app, port=conf['PORT'])
+    socketio.run(app, host=conf['HOST'], port=conf['PORT'])
